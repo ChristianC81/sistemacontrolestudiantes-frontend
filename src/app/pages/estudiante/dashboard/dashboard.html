@@ -1,0 +1,216 @@
+<div class="estudiante-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="welcome-section">
+      <h1>Mi Perfil de Estudiante</h1>
+      <p *ngIf="currentUser">Bienvenido/a, {{ currentUser.username }}</p>
+    </div>
+    <button class="btn btn-logout" (click)="logout()">
+      <i class="icon-logout"></i> Cerrar Sesión
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    {{ successMessage }}
+    <button class="alert-close" (click)="clearMessages()">×</button>
+  </div>
+  
+  <div class="alert alert-error" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button class="alert-close" (click)="clearMessages()">×</button>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Profile Content -->
+  <div class="profile-container" *ngIf="!loading">
+    
+    <!-- Profile Card - View Mode -->
+    <div class="profile-card" *ngIf="!isEditMode && estudiante">
+      <div class="profile-header">
+        <div class="avatar">
+          <span>{{ estudiante.nombre.charAt(0) }}{{ estudiante.apellido.charAt(0) }}</span>
+        </div>
+        <div class="profile-info">
+          <h2>{{ estudiante.nombre }} {{ estudiante.apellido }}</h2>
+          <p class="email">{{ estudiante.email }}</p>
+          <p class="age" *ngIf="calculateAge() > 0">{{ calculateAge() }} años</p>
+        </div>
+        <button class="btn btn-primary" (click)="toggleEditMode()">
+          <i class="icon-edit"></i> Editar Perfil
+        </button>
+      </div>
+
+      <div class="profile-details">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Fecha de Nacimiento:</label>
+            <span>{{ estudiante.fechaNacimiento | date:'dd/MM/yyyy' }}</span>
+          </div>
+          
+          <div class="detail-item">
+            <label>Teléfono:</label>
+            <span>{{ estudiante.telefono || 'No especificado' }}</span>
+          </div>
+          
+          <div class="detail-item full-width">
+            <label>Dirección:</label>
+            <span>{{ estudiante.direccion || 'No especificada' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Card - Edit Mode -->
+    <div class="profile-card edit-mode" *ngIf="isEditMode && estudiante">
+      <div class="profile-header">
+        <div class="avatar">
+          <span>{{ estudiante.nombre.charAt(0) }}{{ estudiante.apellido.charAt(0) }}</span>
+        </div>
+        <div class="profile-info">
+          <h2>Editar Mi Perfil</h2>
+          <p>Actualiza tu información personal</p>
+        </div>
+        <button class="btn btn-secondary" (click)="toggleEditMode()">
+          <i class="icon-cancel"></i> Cancelar
+        </button>
+      </div>
+
+      <form [formGroup]="estudianteForm" (ngSubmit)="updateProfile()" class="edit-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nombre">Nombre *</label>
+            <input
+              type="text"
+              id="nombre"
+              formControlName="nombre"
+              class="form-control"
+              [class.is-invalid]="nombre?.invalid && nombre?.touched"
+              placeholder="Ingrese su nombre"
+            />
+            <div class="invalid-feedback" *ngIf="nombre?.invalid && nombre?.touched">
+              <small *ngIf="nombre?.errors?.['required']">El nombre es obligatorio</small>
+              <small *ngIf="nombre?.errors?.['minlength']">El nombre debe tener al menos 2 caracteres</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="apellido">Apellido *</label>
+            <input
+              type="text"
+              id="apellido"
+              formControlName="apellido"
+              class="form-control"
+              [class.is-invalid]="apellido?.invalid && apellido?.touched"
+              placeholder="Ingrese su apellido"
+            />
+            <div class="invalid-feedback" *ngIf="apellido?.invalid && apellido?.touched">
+              <small *ngIf="apellido?.errors?.['required']">El apellido es obligatorio</small>
+              <small *ngIf="apellido?.errors?.['minlength']">El apellido debe tener al menos 2 caracteres</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <input
+              type="email"
+              id="email"
+              formControlName="email"
+              class="form-control"
+              [class.is-invalid]="email?.invalid && email?.touched"
+              placeholder="Ingrese su email"
+            />
+            <div class="invalid-feedback" *ngIf="email?.invalid && email?.touched">
+              <small *ngIf="email?.errors?.['required']">El email es obligatorio</small>
+              <small *ngIf="email?.errors?.['email']">Ingrese un email válido</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="fechaNacimiento">Fecha de Nacimiento *</label>
+            <input
+              type="date"
+              id="fechaNacimiento"
+              formControlName="fechaNacimiento"
+              class="form-control"
+              [class.is-invalid]="fechaNacimiento?.invalid && fechaNacimiento?.touched"
+            />
+            <div class="invalid-feedback" *ngIf="fechaNacimiento?.invalid && fechaNacimiento?.touched">
+              <small *ngIf="fechaNacimiento?.errors?.['required']">La fecha de nacimiento es obligatoria</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="telefono">Teléfono</label>
+            <input
+              type="tel"
+              id="telefono"
+              formControlName="telefono"
+              class="form-control"
+              placeholder="Ingrese su teléfono"
+            />
+          </div>
+
+          <div class="form-group">
+            <!-- Spacer for alignment -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="direccion">Dirección</label>
+          <textarea
+            id="direccion"
+            formControlName="direccion"
+            class="form-control"
+            rows="3"
+            placeholder="Ingrese su dirección"
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="toggleEditMode()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="estudianteForm.invalid || loading"
+          >
+            <span *ngIf="loading" class="spinner-small"></span>
+            {{ loading ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- No Profile Found -->
+    <div class="no-profile-card" *ngIf="!estudiante && !loading">
+      <div class="no-profile-content">
+        <div class="no-profile-icon">📋</div>
+        <h3>Perfil de Estudiante No Encontrado</h3>
+        <p>No se ha encontrado un perfil de estudiante asociado a su usuario.</p>
+        <p>Por favor, contacte al administrador para que le asigne un perfil de estudiante.</p>
+        
+        <div class="user-info">
+          <h4>Información de Usuario:</h4>
+          <p><strong>Usuario:</strong> {{ currentUser?.username }}</p>
+          <p><strong>Email:</strong> {{ currentUser?.email }}</p>
+          <p><strong>Rol:</strong> {{ currentUser?.role }}</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

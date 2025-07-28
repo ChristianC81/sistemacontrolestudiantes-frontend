@@ -1,0 +1,372 @@
+<div class="admin-dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>Panel de Administración</h1>
+    <button class="btn btn-logout" (click)="logout()">
+      <i class="icon-logout"></i> Cerrar Sesión
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon students"></div>
+      <div class="stat-info">
+        <h3>{{ totalEstudiantes }}</h3>
+        <p>Total Estudiantes</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon users"></div>
+      <div class="stat-info">
+        <h3>{{ totalUsuarios }}</h3>
+        <p>Total Usuarios</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    {{ successMessage }}
+    <button class="alert-close" (click)="clearMessages()">×</button>
+  </div>
+
+  <div class="alert alert-error" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button class="alert-close" (click)="clearMessages()">×</button>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Tabs Container -->
+  <div class="tabs-container">
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab-button" [class.active]="activeTab === 'estudiantes'" (click)="setActiveTab('estudiantes')">
+        👥 Estudiantes
+      </button>
+      <button class="tab-button" [class.active]="activeTab === 'usuarios'" (click)="setActiveTab('usuarios')">
+        👤 Usuarios
+      </button>
+    </div>
+
+    <!-- Estudiantes Tab Content -->
+    <div class="tab-content" [class.active]="activeTab === 'estudiantes'">
+      <div class="section-header">
+        <h2>Gestión de Estudiantes</h2>
+        <button class="btn btn-primary" (click)="openEstudianteModal()">
+          ➕ Nuevo Estudiante
+        </button>
+      </div>
+
+      <div class="table-container" *ngIf="estudiantes.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Apellido</th>
+              <th>Email</th>
+              <th>Fecha Nacimiento</th>
+              <th>Teléfono</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let estudiante of estudiantes; trackBy: trackByEstudianteId">
+              <td>{{ estudiante.nombre }}</td>
+              <td>{{ estudiante.apellido }}</td>
+              <td>{{ estudiante.email }}</td>
+              <td>{{ estudiante.fechaNacimiento | date:'dd/MM/yyyy' }}</td>
+              <td>{{ estudiante.telefono || 'N/A' }}</td>
+              <td class="actions">
+                <button class="btn btn-sm btn-edit" (click)="openEstudianteModal(estudiante)" [disabled]="loading">
+                  ✏️ Editar
+                </button>
+                <button class="btn btn-sm btn-delete" (click)="deleteEstudiante(estudiante._id!)" [disabled]="loading">
+                  🗑️ Eliminar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State for Estudiantes -->
+      <div class="empty-state" *ngIf="estudiantes.length === 0 && !loading">
+        <div class="empty-icon">📚</div>
+        <h3>No hay estudiantes registrados</h3>
+        <p>Comienza agregando tu primer estudiante al sistema</p>
+        <button class="btn btn-primary" (click)="openEstudianteModal()">
+          ➕ Agregar Primer Estudiante
+        </button>
+      </div>
+    </div>
+
+    <!-- Usuarios Tab Content -->
+    <div class="tab-content" [class.active]="activeTab === 'usuarios'">
+      <div class="section-header">
+        <h2>Gestión de Usuarios</h2>
+        <button class="btn btn-primary" (click)="openUsuarioModal()">
+          ➕ Nuevo Usuario
+        </button>
+      </div>
+
+      <div class="table-container" *ngIf="usuarios.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let usuario of usuarios; trackBy: trackByUsuarioId">
+              <td>
+                <div class="user-info">
+                  <strong>{{ usuario.username }}</strong>
+                </div>
+              </td>
+              <td>{{ usuario.email }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="'role-' + usuario.role.toLowerCase()">
+                  {{ usuario.role }}
+                </span>
+              </td>
+              <td class="actions">
+                <button class="btn btn-sm btn-edit" (click)="openUsuarioModal(usuario)" [disabled]="loading">
+                  ✏️ Editar
+                </button>
+                <button class="btn btn-sm btn-delete" (click)="deleteUsuario(usuario._id!)" [disabled]="loading">
+                  🗑️ Eliminar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State for Usuarios -->
+      <div class="empty-state" *ngIf="usuarios.length === 0 && !loading">
+        <div class="empty-icon">👥</div>
+        <h3>No hay usuarios registrados</h3>
+        <p>Comienza agregando tu primer usuario al sistema</p>
+        <button class="btn btn-primary" (click)="openUsuarioModal()">
+          ➕ Agregar Primer Usuario
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Estudiante -->
+<div class="modal-overlay" *ngIf="showEstudianteModal" (click)="closeEstudianteModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ isEditMode ? '✏️ Editar' : '➕ Nuevo' }} Estudiante</h3>
+      <button class="modal-close" (click)="closeEstudianteModal()" [disabled]="loading">×</button>
+    </div>
+
+    <form [formGroup]="estudianteForm" (ngSubmit)="saveEstudiante()" class="modal-form">
+      <!-- Personal Information Section -->
+      <div class="form-section">
+        <h4>📋 Información Personal</h4>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="est-nombre">Nombre *</label>
+            <input type="text" id="est-nombre" formControlName="nombre" class="form-control"
+              [class.is-invalid]="estudianteForm.get('nombre')?.invalid && estudianteForm.get('nombre')?.touched"
+              placeholder="Ingrese el nombre" />
+            <div class="invalid-feedback"
+              *ngIf="estudianteForm.get('nombre')?.invalid && estudianteForm.get('nombre')?.touched">
+              <small *ngIf="estudianteForm.get('nombre')?.errors?.['required']">El nombre es obligatorio</small>
+              <small *ngIf="estudianteForm.get('nombre')?.errors?.['minlength']">Mínimo 2 caracteres</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="est-apellido">Apellido *</label>
+            <input type="text" id="est-apellido" formControlName="apellido" class="form-control"
+              [class.is-invalid]="estudianteForm.get('apellido')?.invalid && estudianteForm.get('apellido')?.touched"
+              placeholder="Ingrese el apellido" />
+            <div class="invalid-feedback"
+              *ngIf="estudianteForm.get('apellido')?.invalid && estudianteForm.get('apellido')?.touched">
+              <small *ngIf="estudianteForm.get('apellido')?.errors?.['required']">El apellido es obligatorio</small>
+              <small *ngIf="estudianteForm.get('apellido')?.errors?.['minlength']">Mínimo 2 caracteres</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="est-email">Email *</label>
+            <input type="email" id="est-email" formControlName="email" class="form-control"
+              [class.is-invalid]="estudianteForm.get('email')?.invalid && estudianteForm.get('email')?.touched"
+              placeholder="estudiante@ejemplo.com" />
+            <div class="invalid-feedback"
+              *ngIf="estudianteForm.get('email')?.invalid && estudianteForm.get('email')?.touched">
+              <small *ngIf="estudianteForm.get('email')?.errors?.['required']">El email es obligatorio</small>
+              <small *ngIf="estudianteForm.get('email')?.errors?.['email']">Formato de email inválido</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="est-fecha">Fecha de Nacimiento *</label>
+            <input type="date" id="est-fecha" formControlName="fechaNacimiento" class="form-control"
+              [class.is-invalid]="estudianteForm.get('fechaNacimiento')?.invalid && estudianteForm.get('fechaNacimiento')?.touched" />
+            <div class="invalid-feedback"
+              *ngIf="estudianteForm.get('fechaNacimiento')?.invalid && estudianteForm.get('fechaNacimiento')?.touched">
+              <small *ngIf="estudianteForm.get('fechaNacimiento')?.errors?.['required']">La fecha es obligatoria</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Information Section -->
+      <div class="form-section">
+        <h4>📞 Información de Contacto</h4>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="est-telefono">Teléfono</label>
+            <input type="tel" id="est-telefono" formControlName="telefono" class="form-control"
+              placeholder="+593 99 999 9999" />
+          </div>
+
+          <div class="form-group">
+            <label for="est-usuario">Usuario Asociado</label>
+            <select id="est-usuario" formControlName="usuarioId" class="form-control">
+              <option value="">Seleccione un usuario</option>
+              <option *ngFor="let user of usuarios" [value]="user._id">
+                {{ user.username }} - {{ user.role }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="est-direccion">Dirección</label>
+          <textarea id="est-direccion" formControlName="direccion" class="form-control" rows="3"
+            placeholder="Dirección completa del estudiante"></textarea>
+        </div>
+      </div>
+
+      <!-- Modal Actions -->
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeEstudianteModal()" [disabled]="loading">
+          ❌ Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="estudianteForm.invalid || loading">
+          <span *ngIf="loading" class="spinner-small"></span>
+          {{ loading ? 'Guardando...' : (isEditMode ? '💾 Actualizar' : '➕ Crear') }} Estudiante
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Usuario -->
+<div class="modal-overlay" *ngIf="showUsuarioModal" (click)="closeUsuarioModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ isEditMode ? '✏️ Editar' : '➕ Nuevo' }} Usuario</h3>
+      <button class="modal-close" (click)="closeUsuarioModal()" [disabled]="loading">×</button>
+    </div>
+
+    <form [formGroup]="usuarioForm" (ngSubmit)="saveUsuario()" class="modal-form">
+      <!-- Account Information Section -->
+      <div class="form-section">
+        <h4>👤 Información de Cuenta</h4>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="usr-username">Nombre de Usuario *</label>
+            <input type="text" id="usr-username" formControlName="username" class="form-control"
+              [class.is-invalid]="usuarioForm.get('username')?.invalid && usuarioForm.get('username')?.touched"
+              placeholder="nombre_usuario" />
+            <div class="invalid-feedback"
+              *ngIf="usuarioForm.get('username')?.invalid && usuarioForm.get('username')?.touched">
+              <small *ngIf="usuarioForm.get('username')?.errors?.['required']">El usuario es obligatorio</small>
+              <small *ngIf="usuarioForm.get('username')?.errors?.['minlength']">Mínimo 3 caracteres</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="usr-email">Email *</label>
+            <input type="email" id="usr-email" formControlName="email" class="form-control"
+              [class.is-invalid]="usuarioForm.get('email')?.invalid && usuarioForm.get('email')?.touched"
+              placeholder="usuario@ejemplo.com" />
+            <div class="invalid-feedback"
+              *ngIf="usuarioForm.get('email')?.invalid && usuarioForm.get('email')?.touched">
+              <small *ngIf="usuarioForm.get('email')?.errors?.['required']">El email es obligatorio</small>
+              <small *ngIf="usuarioForm.get('email')?.errors?.['email']">Formato de email inválido</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="usr-password">{{ isEditMode ? 'Nueva Contraseña (opcional)' : 'Contraseña *' }}</label>
+            <input type="password" id="usr-password" formControlName="password" class="form-control"
+              [class.is-invalid]="usuarioForm.get('password')?.invalid && usuarioForm.get('password')?.touched"
+              [placeholder]="isEditMode ? 'Dejar en blanco para mantener actual' : 'Mínimo 6 caracteres'" />
+            <div class="invalid-feedback"
+              *ngIf="usuarioForm.get('password')?.invalid && usuarioForm.get('password')?.touched">
+              <small *ngIf="usuarioForm.get('password')?.errors?.['required']">La contraseña es obligatoria</small>
+              <small *ngIf="usuarioForm.get('password')?.errors?.['minlength']">Mínimo 6 caracteres</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="usr-role">Rol del Usuario *</label>
+            <select id="usr-role" formControlName="role" class="form-control"
+              [class.is-invalid]="usuarioForm.get('role')?.invalid && usuarioForm.get('role')?.touched">
+              <option value="">Seleccionar rol...</option>
+              <option value="admin">🛡️ Administrador</option>
+              <option value="estudiante">🎓 Estudiante</option>
+            </select>
+            <div class="invalid-feedback" *ngIf="usuarioForm.get('role')?.invalid && usuarioForm.get('role')?.touched">
+              <small *ngIf="usuarioForm.get('role')?.errors?.['required']">Debe seleccionar un rol</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Information -->
+      <div class="role-info" *ngIf="usuarioForm.get('role')?.value">
+        <div class="info-card" [ngClass]="'info-' + usuarioForm.get('role')?.value?.toLowerCase()">
+          <h5 *ngIf="usuarioForm.get('role')?.value === 'ADMIN'">🛡️ Permisos de Administrador</h5>
+          <h5 *ngIf="usuarioForm.get('role')?.value === 'ESTUDIANTE'">🎓 Permisos de Estudiante</h5>
+
+          <ul *ngIf="usuarioForm.get('role')?.value === 'ADMIN'">
+            <li>✅ Gestionar todos los estudiantes</li>
+            <li>✅ Gestionar todos los usuarios</li>
+            <li>✅ Acceso completo al sistema</li>
+          </ul>
+
+          <ul *ngIf="usuarioForm.get('role')?.value === 'ESTUDIANTE'">
+            <li>✅ Ver su propio perfil</li>
+            <li>✅ Editar su información personal</li>
+            <li>❌ No puede gestionar otros usuarios</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Modal Actions -->
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeUsuarioModal()" [disabled]="loading">
+          ❌ Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="usuarioForm.invalid || loading">
+          <span *ngIf="loading" class="spinner-small"></span>
+          {{ loading ? 'Guardando...' : (isEditMode ? '💾 Actualizar' : '➕ Crear') }} Usuario
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
